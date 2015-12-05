@@ -210,7 +210,49 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
           Returns the minimax action using self.depth and self.evaluationFunction
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        legalMoves = currGameState.getLegalActions(0)
+        maxValue = float('-Inf')
+        alpha = float('-Inf')
+        beta = float('Inf')
+        chosenMove = ''
+        # choose a move that maximizing minFunc
+        for move in legalMoves:
+            currentDepth = 0
+            currentMax = self.minFunc(currGameState.generateSuccessor(0, move), alpha, beta, currentDepth, 1)
+            if currentMax > maxValue:
+                maxValue = currentMax
+                chosenMove = move
+        return chosenMove
+
+    def maxFunc(self, currGameState, alpha, beta, depth):
+        # goal test
+        depth = depth + 1
+        if currGameState.isWin() or currGameState.isLose() or depth == self.depth:
+            return self.evaluationFunction(currGameState)
+
+        v = float('-Inf')
+        for move in currGameState.getLegalActions(0):
+            v = max(v, self.minFunc(currGameState.generateSuccessor(0, move), alpha, beta, depth, 1))
+            if v >= beta:
+                return v;
+            alpha = max(alpha, v)
+        return v
+
+    def minFunc(self, currGameState, alpha, beta, depth, agentNumber):
+        # goal test
+        if currGameState.isWin() or currGameState.isLose():
+            return self.evaluationFunction(currGameState)
+
+        v = float('Inf')
+        for move in currGameState.getLegalActions(agentNumber):
+            if agentNumber == currGameState.getNumAgents() - 1:
+                v = min(v, self.maxFunc(currGameState.generateSuccessor(agentNumber, move), alpha, beta, depth))
+            else:
+                v = min(v, self.minFunc(currGameState.generateSuccessor(agentNumber, move), alpha, beta, depth, agentNumber + 1))
+            if v <= alpha:
+                return v
+            beta = min(beta, v)
+        return v
 
 
 class ExpectimaxAgent(MultiAgentSearchAgent):

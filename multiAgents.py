@@ -131,7 +131,7 @@ class MultiAgentSearchAgent(Agent):
       is another abstract class.
     """
 
-    def __init__(self, evalFn='scoreEvaluationFunction', depth='2'):
+    def __init__(self, evalFn='betterEvaluationFunction', depth='2'):
         self.index = 0  # Pacman is always agent index 0
         self.evaluationFunction = util.lookup(evalFn, globals())
         self.depth = int(depth)
@@ -271,16 +271,92 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         util.raiseNotDefined()
 
 
-def betterEvaluationFunction(currGameState):
+def betterEvaluationFunction(currentGameState):
     """
       Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
       evaluation function (question 5).
 
       DESCRIPTION: <write something here so we know what you did>
     """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
 
+    #get the ghosts' states
+    ghostStates = [gameState for gameState in currentGameState.getGhostStates()]
+    #get the ghosts' positions
+    ghostPositionList = [ gameState.getPosition() for gameState in ghostStates]
+    #get the coordinates of current food
+    foodList = currentGameState.getFood().asList()
+    #get pacman's position
+    pacmanPosition = currentGameState.getPacmanPosition()
+    #get the times of pellet
+    newScaredTimes = [ghostState.scaredTimer for ghostState in ghostStates]
+
+    distToFood = 0.0001
+    foodWeight = 20
+    ghostWeight = -0.5
+    currentScore = currentGameState.getScore()
+    powerPelletFactor = 0
+
+    #get the sum of distance from pacman to nearer ghost and the distance between two ghosts
+    distToGhost = minDistanceToGoal(pacmanPosition,ghostPositionList)
+
+    #calculate the distance between each food to pacman
+    foodToPacmanDistList = []
+    for food in foodList:
+        foodToPacmanDistList.append(manhattanDistance(food,pacmanPosition))
+
+    #sort the distance
+    foodToPacmanDistList.sort(cmp=None, key=None, reverse=False)
+
+    #count the k nearest food's distances to pacman and sum them up
+    knn = 4
+
+    if len(foodToPacmanDistList) < knn:
+        knn = len(foodToPacmanDistList)
+
+    for i in range(knn):
+        distToFood += foodToPacmanDistList[i]
+
+    #if the power pellet is actived, the pacman is the most powerful agent
+    if newScaredTimes[0] != 0 :
+        powerPelletFactor = 999999
+    return currentScore + 1.0/distToFood * foodWeight + powerPelletFactor + distToGhost * ghostWeight
+
+def minDistanceToGoal(pacmanPosition, foodList):
+    xy1 = pacmanPosition
+    distance = 0.0
+
+    if(len(foodList) == 0):
+      return distance
+
+    #calculate which food is the nearest one to the pacman
+    minDistanceFood = foodList[0]
+    minDistanceToFood =  abs(xy1[0] - minDistanceFood[0]) + abs(xy1[1] - minDistanceFood[1])
+
+    for food in foodList:
+        xy2 = food
+        tmpDistance =  abs(xy1[0] - xy2[0]) + abs(xy1[1] - xy2[1])
+        if(tmpDistance < minDistanceToFood):
+            minDistanceToFood = tmpDistance
+            minDistanceFood = xy2
+
+    foodList.remove(minDistanceFood)
+
+
+    #calculate which food is the nearest to the minDistanceFood,for example, FoodA
+    #then, calculate which food is the nearest food to FoodA, and so on...
+    while len(foodList)>0:
+        dist = 999999
+        fd = []
+        for food in foodList:
+            tmpDist = abs(food[0]-minDistanceFood[0]) + abs(food[1]-minDistanceFood[1])
+            if(dist > tmpDist):
+                dist = tmpDist
+                fd = food
+        minDistanceToFood += dist
+        minDistanceFood = fd
+        foodList.remove(fd)
+
+    return minDistanceToFood
 
 # Abbreviation
 better = betterEvaluationFunction
